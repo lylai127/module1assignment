@@ -1,65 +1,395 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="./resources/ol.css">
-        <link rel="stylesheet" href="resources/fontawesome-all.min.css">
-        <link href="resources/photon-geocoder-autocomplete.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="./resources/ol-layerswitcher.css">
-        <link rel="stylesheet" href="./resources/qgis2web.css">
-        <style>
-        html, body {
-            background-color: #ffffff;
-        }
-        .ol-control > * {
-            background-color: #f8f8f8!important;
-            color: #444444!important;
-            border-radius: 0px;
-        }
-        .ol-attribution a, .gcd-gl-input::placeholder, .search-layer-input-search::placeholder {
-            color: #444444!important;
-        }
-        .search-layer-input-search {
-            background-color: #f8f8f8!important;
-        }
-        .ol-control > *:focus, .ol-control >*:hover {
-            background-color: rgba(248, 248, 248, 0.7)!important;
-        } 
-        .ol-control {
-            background-color: rgba(255,255,255,.4) !important;
-            padding: 2px !important;
-        } 
-        </style>
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1992年東涌考察 - 互動地圖與照片資料庫</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:"Microsoft JhengHei","PingFang SC",Arial,sans-serif;overflow:hidden}
+:root{--left-w:280px;--right-w:360px;--header-h:44px;--primary:#164c78;--accent:#e8a838;--bg:#f5f6f8;--panel-bg:#fff;--border:#e0e3e8;--text:#222;--text-muted:#888;--shadow:0 2px 8px rgba(0,0,0,0.12)}
+#header{height:var(--header-h);background:linear-gradient(135deg,var(--primary),#2a6fa5);color:#fff;display:flex;align-items:center;padding:0 16px;font-size:14px;font-weight:bold;z-index:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#header .sub{font-size:11px;font-weight:normal;opacity:0.8;margin-left:10px}
+#container{display:flex;height:calc(100% - var(--header-h));width:100%}
+#left-panel{width:var(--left-w);min-width:var(--left-w);background:var(--panel-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#center-panel{flex:1;position:relative;overflow:hidden}
+#right-panel{width:var(--right-w);min-width:var(--right-w);background:var(--panel-bg);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.filters-wrap{padding:12px;overflow-y:auto;flex:1}
+.filter-group{margin-bottom:14px}
+.filter-title{font-size:12px;font-weight:bold;color:var(--primary);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.filter-actions{display:flex;gap:8px;font-size:11px}
+.filter-actions a{color:var(--primary);cursor:pointer;text-decoration:underline}
+.filter-actions a:hover{color:#2a6fa5}
+.filter-items{display:flex;flex-wrap:wrap;gap:4px}
+.filter-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--border);border-radius:12px;font-size:11px;cursor:pointer;transition:all 0.15s;background:#fafafa}
+.filter-chip:hover{border-color:var(--primary)}
+.filter-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.filter-count{font-size:10px;opacity:0.7}
+.record-count{font-size:11px;color:var(--text-muted);text-align:center;padding:6px 0;border-top:1px solid var(--border);background:var(--bg)}
+#map{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}
+#right-empty{display:flex;flex:1;align-items:center;justify-content:center;flex-direction:column;color:var(--text-muted);padding:20px;text-align:center}
+#right-empty .icon{font-size:48px;margin-bottom:12px}
+#right-empty .hint{font-size:12px;line-height:1.6}
+.photo-view{padding:0;flex:1;display:flex;flex-direction:column}
+.photo-view .photo-img-wrap{width:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;min-height:200px}
+.photo-view .photo-img-wrap img{max-width:100%;max-height:300px;object-fit:contain}
+.photo-view .meta{padding:12px 16px;flex:1;overflow-y:auto}
+.photo-view .meta .photo-id{font-size:18px;font-weight:bold;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.photo-view .meta .badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:3px;background:var(--accent);color:#fff}
+.meta-row{margin-bottom:8px;font-size:12px;line-height:1.5}
+.meta-label{font-weight:bold;color:var(--primary);min-width:110px;display:inline-block}
+.meta-value{color:var(--text);word-break:break-word}
+.photo-thumb-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.photo-thumb-list .thumb{width:52px;height:52px;object-fit:cover;border:2px solid transparent;border-radius:4px;cursor:pointer;transition:all 0.15s}
+.photo-thumb-list .thumb:hover,.photo-thumb-list .thumb.active{border-color:var(--primary);transform:scale(1.05)}
+.multi-photo-indicator{position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #fff;font-weight:bold}
+.meta-section{border-top:1px solid var(--border);margin-top:8px;padding-top:8px}
+.meta-section-title{font-size:11px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.leaflet-tooltip.cluster-label{background:transparent;border:none;box-shadow:none;color:#323232;font-size:13px;font-family:"Microsoft JhengHei",sans-serif;font-weight:normal;text-shadow:-1px -1px 0 #facc96,1px -1px 0 #facc96,-1px 1px 0 #facc96,1px 1px 0 #facc96;padding:0 2px}
+.leaflet-tooltip.cluster-label::before{display:none}
+.selected-marker{filter:drop-shadow(0 0 6px #ff0000) drop-shadow(0 0 12px #ff0000)}
+@keyframes pulse{0%{transform:scale(1);opacity:1}100%{transform:scale(2);opacity:0}}
+.hist-layer-item{margin-bottom:10px}
+.hist-layer-item:last-child{margin-bottom:0}
+.hist-layer-item .row{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.hist-layer-item label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.hist-layer-item input[type=checkbox]{accent-color:var(--primary)}
+.hist-layer-item .opacity-row{display:flex;align-items:center;gap:6px;margin-top:3px}
+.hist-layer-item .opacity-slider{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:#d0d5dd;border-radius:2px;cursor:pointer}
+.hist-layer-item .opacity-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--primary);cursor:pointer}
+.hist-layer-item .opacity-val{font-size:10px;color:var(--text-muted);width:28px;text-align:right}
+.hist-in-left{border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+.reset-map-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px 12px;margin-top:10px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;transition:background 0.15s}
+.reset-map-btn:hover{background:#2a6fa5}
+.reset-map-btn:active{transform:scale(0.98)}
+@media(max-width:1024px){:root{--left-w:240px;--right-w:300px}}
+@media(max-width:768px){
+#container{flex-direction:column}
+#left-panel{width:100%;min-width:0;max-height:45vh;border-right:none;border-bottom:1px solid var(--border)}
+#center-panel{height:35vh}
+#right-panel{width:100%;min-width:0;flex:1;border-left:none;border-top:1px solid var(--border)}
+.filters-wrap{max-height:none}
+}
+</style>
+</head>
+<body>
+<div id="header">
+<span>1992年東涌考察 (沙咀頭及大圍坑)</span>
+<span class="sub">Interactive Map &amp; Photo Database</span>
+</div>
+<div id="container">
+<div id="left-panel">
+<div class="filters-wrap" id="filters-wrap">
+<div class="filter-group">
+<div class="filter-title"><span>Place Name 地點</span><span class="filter-actions"><a onclick="selectAll('placeName',true)">Select all</a><a onclick="selectAll('placeName',false)">Clear</a></span></div>
+<div class="filter-items" id="filter-placeName"></div>
+</div>
+<div class="filter-group">
+<div class="filter-title"><span>Photo Subject 主題</span><span class="filter-actions"><a onclick="selectAll('photoSubject',true)">Select all</a><a onclick="selectAll('photoSubject',false)">Clear</a></span></div>
+<div class="filter-items" id="filter-photoSubject"></div>
+</div>
+<div class="filter-group">
+<div class="filter-title"><span>Location Precision 精度</span><span class="filter-actions"><a onclick="selectAll('locationPrecision',true)">Select all</a><a onclick="selectAll('locationPrecision',false)">Clear</a></span></div>
+<div class="filter-items" id="filter-locationPrecision"></div>
+</div>
+<div class="record-count" id="record-count" style="margin-bottom:10px;border-top:none;border-bottom:1px solid var(--border)">顯示 0 / 0 筆記錄</div>
+<div class="filter-group hist-in-left">
+<div class="filter-title"><span>歷史地圖疊加層 Historical Maps</span></div>
+<div class="hist-layer-item">
+<div class="row"><label><input type="checkbox" id="hist1-toggle" onchange="toggleHistLayer(1,this.checked)"> 沙咀頭與大圍坑</label></div>
+<div class="opacity-row"><span style="font-size:10px;color:#888">透明度</span><input type="range" class="opacity-slider" id="hist1-opacity" min="0" max="100" value="70" oninput="setHistOpacity(1,this.value)"><span class="opacity-val" id="hist1-val">70%</span></div>
+</div>
+<div class="hist-layer-item">
+<div class="row"><label><input type="checkbox" id="hist2-toggle" onchange="toggleHistLayer(2,this.checked)"> 彌勒山</label></div>
+<div class="opacity-row"><span style="font-size:10px;color:#888">透明度</span><input type="range" class="opacity-slider" id="hist2-opacity" min="0" max="100" value="70" oninput="setHistOpacity(2,this.value)"><span class="opacity-val" id="hist2-val">70%</span></div>
+</div>
+</div>
+<button class="reset-map-btn" onclick="resetMapView()">📍 重設地圖位置</button>
+</div>
+</div>
+<div id="center-panel">
+<div id="map"></div>
+</div>
+<div id="right-panel">
+<div id="right-empty"><div class="icon">📷</div><div class="hint">點擊地圖上的照片標記<br>查看照片及元數據</div></div>
+</div>
+</div>
+<script>
+const PHOTO_DATA = [{"id": "B12P01", "photoDate": "Jan-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「伯公-沙咀頭附近路邊（嶺皮村所有）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在彎曲的小路左側可見一根寫有「禁止標貼」的灰色電杆，右側是大樹根、石堆及簡易的伯公祭祀點。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P01.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P02", "photoDate": "Jan-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「伯公 沙咀頭」。與B12P06為同一地點，按其描述「沙咀頭村內石頭崇拜（過橋後菜園側）」，定位在B12P03、B12P08及B12P09的橋上。", "photoNotes": "在沙土地面上有一個以石塊與水泥粗略圍成的半圓形伯公壇。壇內有數個鐵罐香爐，插滿紅香，周圍散落石塊與枯葉。左側可見鐵絲網與灌木，右側是乾燥的泥土路，背景為綠葉茂密的樹叢。這是典型路邊簡易伯公祭祀點。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P02.jpg", "lat": 22.27981, "lng": 113.93294}, {"id": "B12P03", "photoDate": "Jan-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Bridge", "locationInfo": "原照片描述為「拜橋 沙咀頭」。按照片內容推測，應與B12P08及B12P09的橋為同一座橋。定位在歷史地圖中類似橋的位置。", "photoNotes": "橋的兩側設有灰色金屬欄杆，右側橋邊排列多盆綠色與紅色花卉盆栽。左側可見一個黑色圓桶與植物，背景是開闊的田野、樹木與遠山。橋下有淺水與泥地，顯示出鄉村灌溉或交通用途的橋樑。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P03.jpg", "lat": 22.27981, "lng": 113.93294}, {"id": "B12P04", "photoDate": "Jan-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「伯公 沙咀頭」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在橋頭的水泥平臺旁有三塊豎立的石頭。石頭前放置小杯與香爐，香枝已燃盡。左側有金屬欄杆與水管，背景是彎曲的泥土路、香蕉樹與雜物堆。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P04.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P05", "photoDate": "1992", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Temple", "locationInfo": "原照片描述為「喇嘛廟外觀」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在鄉間小路的右側是一根高大的木電杆，中間是一條通往喇嘛廟的小路，兩旁有茂密灌木與大樹。遠處可見白色的傳統房屋，以及一片開闊的田地與水塘。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P05.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P06", "photoDate": "3-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「沙咀頭村內石頭崇拜（過橋後菜園側）」。無法從照片中判斷拍攝地點，故定位在B12P03、B12P08及B12P09的橋上。", "photoNotes": "路邊石堆前有三個香爐。左邊的罐子有圓點裝飾，是傳統的香爐，中間與右邊的罐子已銹蝕，全部插滿紅香，香火痕跡明顯。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P06.jpg", "lat": 22.27981, "lng": 113.93294}, {"id": "B12P07", "photoDate": "3-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Exact", "placeName": "沙咀頭", "photoSubject": "Portrait", "locationInfo": "原照片描述為「沙咀頭村民 李清葵」。從照片可見，攝於沙咀頭村1號。", "photoNotes": "從照片可見，村民李清葵站在沙咀頭一號的屋前。他穿深色夾克與膠靴，雙手交叉站立。屋前有藍色窗戶與紅色對聯，旁邊堆放工具箱、繩索與靴子。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P07.jpg", "lat": 22.28106, "lng": 113.93261}, {"id": "B12P08", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「入沙咀頭村橋口」。按照片內容推測，應與B12P03及B12P09的橋為同一座橋。定位在歷史地圖中類似橋的位置。", "photoNotes": "在橋面靠近欄杆的底座旁散落多支紅香與香枝，地面有裂縫與水管。右側是乾燥的泥地與灌木，背景可見橋面延伸與遠處房屋。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P08.jpg", "lat": 22.27981, "lng": 113.93294}, {"id": "B12P09", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「沙咀頭村橋民」。按照片內容推測，應與B12P03及B12P08的橋為同一座橋。定位在歷史地圖中類似橋的位置。", "photoNotes": "橋面金屬欄杆的底座旁插有數支紅香，右側有一盆綠葉植物。橋面可見紅色數字標記，下方是泥地與水管。呈現出橋上簡易的祭祀行為痕跡。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P09.jpg", "lat": 22.27981, "lng": 113.93294}, {"id": "B12P10", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「沙咀頭村外近惠豐農場石碑」。惠豐農場位於東涌東奧古道33號。", "photoNotes": "在草地上有一塊方形石碑。碑身粗糙，碑前散落紅香與灰燼。周圍長滿雜草與小植物。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P10.jpg", "lat": 22.27927, "lng": 113.93212}, {"id": "B12P11", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「惠豐農村外」，推斷應為惠豐農場，現惠豐農場位於東涌東奧古道33號。", "photoNotes": "在路邊一處由乾草與落葉覆蓋的地面有一叢香枝，旁有水管與水泥邊。周圍環境乾燥雜亂，顯示出農場外臨時的祭祀痕跡。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P11.jpg", "lat": 22.27927, "lng": 113.93212}, {"id": "B12P12", "photoDate": "Feb-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "House", "locationInfo": "原照片描述為「居民屋（沙咀頭）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在橋的外側有多間銹蝕的鐵皮屋與木結構房屋。部分屋頂已破損，露出木架，地面堆放雜物。前景有金屬欄杆，背景是綠意盎然的山丘。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P12.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P13", "photoDate": "Feb-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「伯公 沙咀頭附近）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在沙地小路旁的大樹根旁有簡易木製牌樓。牌樓上掛有對聯的紅紙及門神的畫像，地面有香爐、紅布與供品。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P13.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P14", "photoDate": "1-Feb-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「沙咀頭村橋口之石頭崇拜」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "在水泥凹槽旁有三塊豎立的石頭。石頭上貼有紅紙，前方石臺上放置三隻小杯與一個白色香爐。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P14.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P15", "photoDate": "1-Feb-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「沙咀頭村橋頭」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "橋面金屬欄杆底座貼有紅紙，地上散落紅香與香枝，旁有水管與裂縫。右側是泥地與小植物，呈現出橋頭臨時的祭祀痕跡。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P15.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P16", "photoDate": "2-Feb-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「往沙咀頭及侯王廟路邊石或樹崇拜」。無法從照片中判斷拍攝地點，故定位在通往沙咀頭及侯王廟的路上。", "photoNotes": "樹根旁有對大石的祭祀。香爐中插滿紅香並有火焰，樹根旁有彩色祭祀用品、水果與枯枝。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P16.jpg", "lat": 22.27986, "lng": 113.93308}, {"id": "B12P17", "photoDate": "2-Feb-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「往沙咀頭及侯王廟路邊石或樹崇拜」。無法從照片中判斷拍攝地點，故定位在通往沙咀頭及侯王廟的路上。", "photoNotes": "俯視B12P16的同一祭祀地點。香爐中插滿紅香並有火焰，樹根旁有彩色祭祀用品、水果與枯枝，周圍是大石與樹根。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P17.jpg", "lat": 22.27986, "lng": 113.93308}, {"id": "B12P18", "photoDate": "1992", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "House", "locationInfo": "原照片描述為「沙咀頭（一）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "站在水泥橋外側，可見多間銹蝕鐵皮屋與木屋。房屋結構簡陋，部分已破舊。橋下是泥地，背景是高大的山峰。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P18.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P19", "photoDate": "1992", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "House", "locationInfo": "原照片描述為「沙咀頭（二）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "估計拍攝者站在橋上，俯瞰多間破舊的鐵皮屋與木屋。部分房屋以高腳支撐，地面堆放雜物與石頭。左側是淺水溝，背景是山丘。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P19.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P20", "photoDate": "1992", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "沙咀頭", "photoSubject": "House", "locationInfo": "原照片描述為「沙咀頭（三）」。無法從照片中判斷拍攝地點，故定位在沙咀頭村內。", "photoNotes": "估計拍攝者站在橋上，遠望多間破損的鐵皮屋。部分結構已倒塌，周圍雜草與雜物散落。遠處可見山丘與其他房屋。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P20.jpg", "lat": 22.27922, "lng": 113.93135}, {"id": "B12P21", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「往侯王廟及沙咀頭村路口v42910G燈柱旁崇拜」。無法從照片中判斷拍攝地點，故定位在通往沙咀頭及侯王廟的路上。", "photoNotes": "在石堆及樹根旁有祭祀點。地上有紅香與灰燼。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P21.jpg", "lat": 22.27986, "lng": 113.93308}, {"id": "B12P22", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "沙咀頭", "photoSubject": "Shrine", "locationInfo": "原照片描述為「往侯王廟及沙咀頭村路口v42910G燈柱旁崇拜」。無法從照片中判斷拍攝地點，故定位在通往沙咀頭及侯王廟的路上。", "photoNotes": "與B12P16為同一祭祀地點。俯拍在石堆及樹根旁的祭祀點，呈現出同一地點的細節特寫。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P22.jpg", "lat": 22.27986, "lng": 113.93308}, {"id": "B12P23", "photoDate": "3-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "大圍坑", "photoSubject": "Shrine", "locationInfo": "原照片描述為「大圍坑村永樂橋側石頭崇拜」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，另從網上資料得悉通往大圍坑的永樂橋應位於東涌逸東邨翠逸樓旁，故定位於東涌逸東邨翠逸樓旁。", "photoNotes": "大樹下設有石台並有對石頭的祭祀。香爐插滿紅香，旁有一捆紅香與小杯。背景是鐵皮屋與木柱。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P23.jpg", "lat": 22.2822, "lng": 113.93456}, {"id": "B12P24", "photoDate": "25-Jan-92", "photographer": "陳曼霞", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "大圍坑", "photoSubject": "Shrine", "locationInfo": "原照片描述為「大圍坑村永樂橋側石頭崇拜」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，另從網上資料得悉通往大圍坑的永樂橋應位於東涌逸東邨翠逸樓旁，故定位於東涌逸東邨翠逸樓旁。", "photoNotes": "與B12P23為同一拍攝地點。石台前有香爐、彩色紙紮牌位與紅香。旁有一捆紅香與小杯，背景是大樹與鐵皮屋。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P24.jpg", "lat": 22.2822, "lng": 113.93456}, {"id": "B12P25", "photoDate": "Feb-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Altar", "locationInfo": "原照片描述為「神位（大圍坑183號）」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "室內桌上有花瓶、暖瓶、日曆與各種用品，下方是紅布神台與香爐。牆上掛有福字與時鐘。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P25.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P26", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Approximate", "placeName": "彌勒山", "photoSubject": "Landscape", "locationInfo": "拍攝者未有對照片作出描述。從Google Map馬灣涌的街景推斷照片山脈應為彌勒山。", "photoNotes": "遠處有雲霧籠罩的彌勒山山峰。從攝影角度推斷，拍攝者應該是從大圍坑的高處向該處拍攝。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P26.jpg", "lat": 22.24925, "lng": 113.92041}, {"id": "B12P27", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Village", "locationInfo": "原照片描述為「以前的農村現已荒棄（大圍坑84號前）」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "荒棄農田的遠處有房屋與山丘。前景是雜草、白色布條與木架，背景是連綿山脈與零星房屋，顯示出以前農村現已荒棄的景象。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P27.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P28", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「一老伯從馬灣涌回家途徑大圍坑」。與B12P29及B12P30為同一條鄉間小路，右側建築物與B12P31、B12P32及B12P39的建築物為同一座，故推斷同一位置拍攝。", "photoNotes": "一位老人沿彎曲的鄉間小路上行走，他手持雨傘與白色的袋子。路的兩旁是雜草與圍欄。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P28.jpg", "lat": 22.28321, "lng": 113.93516}, {"id": "B12P29", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「另一老伯」。與B12P28及B12P30為同一條鄉間小路，右側建築物與B12P31、B12P32及B12P39的建築物為同一座，故推斷同一位置拍攝。", "photoNotes": "三位男子沿彎曲的鄉間小路上行走。他們穿著正式或休閒衣服，兩旁是雜草與圍欄。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P29.jpg", "lat": 22.28321, "lng": 113.93516}, {"id": "B12P30", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「另一老伯（這老伯名叫陳志和，住在散頭）」。與B12P28及B12P29為同一條鄉間小路，右側建築物與B12P31、B12P32及B12P39的建築物為同一座，故推斷同一位置拍攝。", "photoNotes": "老人陳志和獨行正走在彎曲的鄉間小路，他手持雨傘與袋子，穿藍色外套。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P30.jpg", "lat": 22.28321, "lng": 113.93516}, {"id": "B12P31", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「遊客途徑大圍坑（一）」。與B12P32同一地點拍攝，與B12P39的建築物為同一座。", "photoNotes": "一群遊客正沿鄉間小路下行。人群密集，歡聲笑語，呈現出訪客途徑大圍坑的熱鬧場面。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P31.jpg", "lat": 22.28321, "lng": 113.93516}, {"id": "B12P32", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「遊客途徑大圍坑（二）」。與B12P31同一地點拍攝，與B12P39的建築物為同一座。", "photoNotes": "一群遊客正沿鄉間小路下行。人群密集，歡聲笑語，呈現出訪客途徑大圍坑的熱鬧場面。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P32.jpg", "lat": 22.28321, "lng": 113.93516}, {"id": "B12P33", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「遊客途徑大圍坑（三）」。照片中人群與B12P31及B21P32 的應為同一郡遊客，推斷為同一段路的前後位置。", "photoNotes": "拍攝者站在較高斜坡或平臺，俯瞰遊客走向白色兩層房屋。右側是菜田與竹架，背景是開闊田野與山丘，呈現出鄉村與訪客互動的場景。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P33.jpg", "lat": 22.28316, "lng": 113.93566}, {"id": "B12P34", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「遊客途徑大圍坑（四）」。照片中人群與B12P31及B21P32 的應為同一郡遊客，推斷為同一段路的前後位置。", "photoNotes": "拍攝者站在較高位置，遠望遊客沿小路走向遠處。左側有白色房屋，背景是高大山峰與田野。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P34.jpg", "lat": 22.28316, "lng": 113.93566}, {"id": "B12P35", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Village", "locationInfo": "原照片描述為「大圍坑村」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "拍攝者遠望大圍坑村。多間平房散佈於雜草與樹木間，背景是連綿山丘與霧氣，呈現出大圍坑的面貌。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P35.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P36", "photoDate": "不詳", "photographer": "不詳", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Village", "locationInfo": "原照片的描述為「大圍坑村永樂橋側石頭崇拜」應為錯誤，照片與B12P35內容一樣，照片描述應為「大圍坑村」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "拍攝者遠望大圍坑村。多間平房散佈於雜草與樹木間，背景是連綿山丘與霧氣，呈現出大圍坑的面貌。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P36.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P37", "photoDate": "不詳", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Shrine", "locationInfo": "原照片描述為「伯公 大圍坑村口」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "拍攝者站在石台前約兩至三米，正面拍攝大樹下的石頭祭祀。香爐與紙紮牌位並列，旁有鐵皮屋與洗衣機。周圍是木柱與雜物，呈現出村口的祭祀空間。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P37.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P38", "photoDate": "Jan-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "House", "locationInfo": "原照片描述為「八卦 大圍坑村口一家」。結合歷史地圖及現今地圖，大圍坑村應位於現時逸東邨、東涌西站及其左側位置，現時無法從Google Map 及GeoInforMap 中定位大圍坑，故定位在大圍坑村舊址上。", "photoNotes": "在鐵皮屋正門前約一至兩米，正面拍攝掛滿紅紙符、八卦鏡與對聯的門口。門內可見神位與人物照片，整體呈現出家居入口的宗教氛圍。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P38.jpg", "lat": 22.2831, "lng": 113.93454}, {"id": "B12P39", "photoDate": "Feb-92", "photographer": "張振江", "handler": "王羽彤", "processDate": "28-Aug-26", "locationPrecision": "Village-level", "placeName": "大圍坑", "photoSubject": "Path", "locationInfo": "原照片描述為「大圍坑村」。與B12P31及B12P32的建築物為同一座。", "photoNotes": "在小路旁有樹與白色樓房。遠處可見行人，兩旁是圍欄與雜草。", "photoSource": "CUHK Anthropology", "photoUrl": "images/C__Users_lai_l_Desktop_CUHK_ANTH5323_Module Assignment_Module 1_Photo_jpeg_adjusted_B12P39.jpg", "lat": 22.28321, "lng": 113.93516}];
+const CURRENT_MAP_BOUNDS = [[22.246552, 113.909823], [22.284066, 113.957125]];
+const HIST1_BOUNDS = [[22.278298, 113.928450], [22.283987, 113.939042]];
+const HIST2_BOUNDS = [[22.246880, 113.916713], [22.252236, 113.925249]];
+const PLACE_COLORS = {'沙咀頭':'#c88582','大圍坑':'#79b9da','彌勒山':'#81e4a6'};
+const DEFAULT_COLOR = '#6e1fdd';
+let filters = {placeName:new Set(),photoSubject:new Set(),locationPrecision:new Set()};
+let selectedPhotoId = null;
+let clusterGroup = null;
+let allMarkers = [];
+let selectedMarkerRef = null;
 
-        <style>
-        #map {
-            width: 722px;
-            height: 601px;
+function initFilters(){
+    const fields = ['placeName','photoSubject','locationPrecision'];
+    fields.forEach(field => {
+        const values = [...new Set(PHOTO_DATA.map(p => p[field]))].sort();
+        filters[field] = new Set(values);
+        const container = document.getElementById('filter-' + field);
+        container.innerHTML = values.map(v => {
+            const color = field === 'placeName' && PLACE_COLORS[v] ? PLACE_COLORS[v] : null;
+            const count = PHOTO_DATA.filter(p => p[field] === v).length;
+            return `<span class="filter-chip active" data-field="${field}" data-value="${v}" onclick="toggleFilter('${field}','${v}',this)">${color ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>`:''}<span>${v}</span><span class="filter-count">(${count})</span></span>`;
+        }).join('');
+    });
+}
+
+function toggleFilter(field, value, el){
+    if(filters[field].has(value)){filters[field].delete(value);el.classList.remove('active');}
+    else{filters[field].add(value);el.classList.add('active');}
+    updateMap();
+}
+
+function selectAll(field, select){
+    const values = [...new Set(PHOTO_DATA.map(p => p[field]))].sort();
+    filters[field] = select ? new Set(values) : new Set();
+    document.querySelectorAll('.filter-chip[data-field="'+field+'"]').forEach(el => {
+        if(select) el.classList.add('active'); else el.classList.remove('active');
+    });
+    updateMap();
+}
+
+function getFilteredPhotos(){
+    // If a filter category has no selections, treat it as "all" (no constraint)
+    return PHOTO_DATA.filter(p =>
+        (filters.placeName.size === 0 || filters.placeName.has(p.placeName)) &&
+        (filters.photoSubject.size === 0 || filters.photoSubject.has(p.photoSubject)) &&
+        (filters.locationPrecision.size === 0 || filters.locationPrecision.has(p.locationPrecision))
+    );
+}
+
+const map = L.map('map', {center: [22.281, 113.934], zoom: 16, maxZoom: 20, minZoom: 13, zoomControl: true, attributionControl: true, preferCanvas: false});
+L.control.scale({position: 'bottomright', imperial: false}).addTo(map);
+
+// Raster layers - use pane to keep them below markers
+map.createPane('rasterPane');
+map.getPane('rasterPane').style.zIndex = 200;
+const currentMapLayer = L.imageOverlay('./layers/currentmap_merged_clipped_translated_resampled4_0.png', CURRENT_MAP_BOUNDS, {opacity: 1, pane: 'rasterPane', interactive: false}).addTo(map);
+
+map.createPane('histPane1');
+map.getPane('histPane1').style.zIndex = 250;
+const hist1Layer = L.imageOverlay('./layers/HistoricalMap_1_cropped_translated_resample3_1.png', HIST1_BOUNDS, {opacity: 0.7, pane: 'histPane1', interactive: false});
+
+map.createPane('histPane2');
+map.getPane('histPane2').style.zIndex = 251;
+const hist2Layer = L.imageOverlay('./layers/HistoricalMap_2_cropped_translated_resampled3_2.png', HIST2_BOUNDS, {opacity: 0.7, pane: 'histPane2', interactive: false});
+
+// Marker pane is at default zIndex 600, above all raster panes
+map.fitBounds(CURRENT_MAP_BOUNDS, {padding: [20, 20]});
+
+function createMarker(photo, countAtLocation){
+    const color = PLACE_COLORS[photo.placeName] || DEFAULT_COLOR;
+    const multiBadge = countAtLocation > 1 ? `<div class="multi-photo-indicator">${countAtLocation}</div>` : '';
+    const icon = L.divIcon({
+        className: 'photo-marker',
+        html: `<div style="position:relative;width:16px;height:16px">${multiBadge}<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid rgba(35,35,35,0.9);box-shadow:0 2px 4px rgba(0,0,0,0.4);cursor:pointer"></div></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        tooltipAnchor: [10, 0]
+    });
+    const marker = L.marker([photo.lat, photo.lng], {icon: icon, riseOnHover: true, riseOffset: 1000});
+    marker.bindTooltip(photo.placeName, {permanent: true, direction: 'right', offset: [6, 0], className: 'cluster-label'});
+    marker.on('click', function(){ selectLocation(photo.lat, photo.lng, marker); });
+    return marker;
+}
+
+function groupByLocation(photos){
+    const groups = {};
+    photos.forEach(p => {
+        const key = p.lat.toFixed(6) + ',' + p.lng.toFixed(6);
+        if(!groups[key]) groups[key] = [];
+        groups[key].push(p);
+    });
+    return groups;
+}
+
+function updateMap(){
+    var filtered = getFilteredPhotos();
+    if(clusterGroup){ map.removeLayer(clusterGroup); clusterGroup = null; }
+
+    // Group by exact lat/lng
+    var locationGroups = groupByLocation(filtered);
+
+    // Step 1: Create a plain layerGroup first (guaranteed to work)
+    // Then convert to markerClusterGroup with minimal config
+    clusterGroup = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 25,
+        disableClusteringAtZoom: 17,
+        spiderfyOnMaxZoom: true,
+        spiderfyDistanceMultiplier: 2,
+        removeOutsideVisibleBounds: false,
+        animate: false,
+        iconCreateFunction: function(cluster){
+            var children = cluster.getAllChildMarkers();
+            // Count total photos in this cluster (not number of locations)
+            var count = 0;
+            for(var i = 0; i < children.length; i++){
+                count += (children[i]._photos && children[i]._photos.length) ? children[i]._photos.length : 1;
+            }
+            var placeSet = {};
+            for(var i = 0; i < children.length; i++){
+                var pn = '';
+                try { pn = children[i].options.placeName || ''; } catch(e2) {}
+                if(!pn) { try { pn = children[i]._placeName || ''; } catch(e3) {} }
+                if(pn) placeSet[pn] = true;
+            }
+            var pnames = Object.keys(placeSet);
+            var placeText = '';
+            if(pnames.length === 1) placeText = pnames[0];
+            else if(pnames.length > 1) placeText = pnames.join('/');
+            var sz = 28;
+            if(count >= 5) sz = 34;
+            if(count >= 10) sz = 40;
+            var html = '<div style="width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:#e8a838;border:2px solid #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:bold;color:#333;box-shadow:0 2px 6px rgba(0,0,0,0.35)">' +
+                '<span style="font-size:13px;line-height:1">' + count + '</span>';
+            if(placeText){
+                html += '<span style="font-size:8px;font-weight:normal;max-width:' + (sz-4) + 'px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555;margin-top:1px">' + placeText + '</span>';
+            }
+            html += '</div>';
+            return L.divIcon({ html: html, className: 'custom-cluster', iconSize: [sz, sz] });
         }
-        </style>
-        <title></title>
-    </head>
-    <body>
-        <div id="map">
-            <div id="popup" class="ol-popup">
-                <a href="#" id="popup-closer" class="ol-popup-closer"></a>
-                <div id="popup-content"></div>
+    });
+
+    var shownLabels = {};
+    allMarkers = [];
+
+    var keys = Object.keys(locationGroups);
+    for(var ki = 0; ki < keys.length; ki++){
+        var photosAtLocation = locationGroups[keys[ki]];
+        var representative = photosAtLocation[0];
+        var marker = createMarker(representative, photosAtLocation.length);
+        // Store placeName in BOTH options and direct property for safety
+        marker.options.placeName = representative.placeName;
+        marker._placeName = representative.placeName;
+        marker._photos = photosAtLocation;
+
+        // De-duplicate labels
+        var labelKey = representative.lat.toFixed(6) + ',' + representative.lng.toFixed(6) + ',' + representative.placeName;
+        if(shownLabels[labelKey]) marker.unbindTooltip();
+        else shownLabels[labelKey] = true;
+
+        clusterGroup.addLayer(marker);
+        allMarkers.push({marker: marker, photos: photosAtLocation});
+    }
+
+    map.addLayer(clusterGroup);
+    document.getElementById('record-count').textContent = '顯示 ' + filtered.length + ' / ' + PHOTO_DATA.length + ' 筆記錄';
+}
+
+function selectLocation(lat, lng, marker){
+    if(selectedMarkerRef){
+        const el = selectedMarkerRef.getElement();
+        if(el) el.classList.remove('selected-marker');
+    }
+    selectedMarkerRef = marker;
+    const el = marker.getElement();
+    if(el) el.classList.add('selected-marker');
+
+    // Find photos at this exact location that ALSO match current filters
+    const locationPhotos = getFilteredPhotos().filter(p =>
+        Math.abs(p.lat - lat) < 0.000001 && Math.abs(p.lng - lng) < 0.000001
+    );
+
+    if(locationPhotos.length === 1){
+        renderPhotoDetail(locationPhotos[0], locationPhotos, locationPhotos[0].id);
+    } else {
+        renderPhotoList(locationPhotos);
+    }
+}
+
+function renderPhotoList(photos){
+    const rightPanel = document.getElementById('right-panel');
+    const first = photos[0];
+    const precisionColor = first.locationPrecision === 'Exact' ? '#4caf50' : first.locationPrecision === 'Approximate' ? '#ff9800' : '#2196f3';
+    const thumbs = photos.map(p => `
+        <img class="thumb" src="./${p.photoUrl}" alt="${p.id}" data-id="${p.id}" onclick="renderPhotoDetail(PHOTO_DATA.find(ph=>ph.id==='${p.id}'), getFilteredPhotos().filter(ph=>Math.abs(ph.lat-${first.lat})<0.000001 && Math.abs(ph.lng-${first.lng})<0.000001), '${p.id}')">`).join('');
+
+    rightPanel.innerHTML = `
+    <div class="photo-view">
+        <div class="photo-img-wrap" style="background:#f5f5f5;flex-direction:column;padding:20px;text-align:center;color:#666;font-size:13px;line-height:1.6">
+            <div style="font-size:24px;margin-bottom:8px">📍</div>
+            <div>此地點共有 <strong>${photos.length}</strong> 張照片</div>
+            <div style="font-size:11px;margin-top:4px">點擊下方縮圖查看詳細資料</div>
+        </div>
+        <div class="meta">
+            <div class="photo-id">${first.placeName}<span class="badge" style="background:${precisionColor}">${first.locationPrecision}</span></div>
+            <div class="meta-row"><span class="meta-label">座標</span><span class="meta-value">${first.lat.toFixed(5)}, ${first.lng.toFixed(5)}</span></div>
+            <div class="meta-row"><span class="meta-label">照片數量</span><span class="meta-value">${photos.length} 張</span></div>
+            <div class="meta-section">
+                <div class="meta-section-title">此地點照片</div>
+                <div class="photo-thumb-list">${thumbs}</div>
             </div>
         </div>
-        <script src="resources/qgis2web_expressions.js"></script>
-        <script src="./resources/functions.js"></script>
-        <script src="./resources/ol.js"></script>
-        <script src="./resources/ol-layerswitcher.js"></script>
-        <script src="resources/photon-geocoder-autocomplete.min.js"></script>
-        <script src="resources/olms.js"></script>
-        <script src="layers/1992_3.js"></script>
-        <script src="styles/1992_3_style.js"></script>
-        <script src="./layers/layers.js" type="text/javascript"></script> 
-        <script src="./resources/Autolinker.min.js"></script>
-        <script src="./resources/qgis2web.js"></script>
-    </body>
+    </div>`;
+}
+
+function renderPhotoDetail(photo, siblings, activeId){
+    if(!photo) return;
+    const rightPanel = document.getElementById('right-panel');
+    const precisionColor = photo.locationPrecision === 'Exact' ? '#4caf50' : photo.locationPrecision === 'Approximate' ? '#ff9800' : '#2196f3';
+
+    let thumbsHtml = '';
+    if(siblings && siblings.length > 1){
+        thumbsHtml = `<div class="meta-section"><div class="meta-section-title">同一地點其他照片</div><div class="photo-thumb-list">` +
+            siblings.map(p => `<img class="thumb ${p.id === activeId ? 'active':''}" src="./${p.photoUrl}" alt="${p.id}" data-id="${p.id}" onclick="renderPhotoDetail(PHOTO_DATA.find(ph=>ph.id==='${p.id}'), getFilteredPhotos().filter(ph=>Math.abs(ph.lat-${photo.lat})<0.000001 && Math.abs(ph.lng-${photo.lng})<0.000001), '${p.id}')">`).join('') +
+            `</div></div>`;
+    }
+
+    rightPanel.innerHTML = `
+    <div class="photo-view">
+        <div class="photo-img-wrap"><img src="./${photo.photoUrl}" alt="${photo.id}" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\\'color:#888;font-size:12px;padding:20px;text-align:center\\'>照片載入失敗<br>${photo.id}</div>'"></div>
+        <div class="meta">
+            <div class="photo-id">${photo.id}<span class="badge" style="background:${precisionColor}">${photo.locationPrecision}</span></div>
+            <div class="meta-row"><span class="meta-label">指攝日期</span><span class="meta-value">${photo.photoDate}</span></div>
+            <div class="meta-row"><span class="meta-label">拍攝者</span><span class="meta-value">${photo.photographer}</span></div>
+            <div class="meta-row"><span class="meta-label">經手人</span><span class="meta-value">${photo.handler}</span></div>
+            <div class="meta-row"><span class="meta-label">整理日期</span><span class="meta-value">${photo.processDate}</span></div>
+            <div class="meta-row"><span class="meta-label">Place Name</span><span class="meta-value">${photo.placeName}</span></div>
+            <div class="meta-row"><span class="meta-label">Photo Subject</span><span class="meta-value">${photo.photoSubject}</span></div>
+            <div class="meta-section"><div class="meta-section-title">Location Information</div><div class="meta-row"><span class="meta-value">${photo.locationInfo}</span></div></div>
+            <div class="meta-section"><div class="meta-section-title">Photo Notes</div><div class="meta-row"><span class="meta-value">${photo.photoNotes}</span></div></div>
+            <div class="meta-section"><div class="meta-section-title">Source</div><div class="meta-row"><span class="meta-value">${photo.photoSource}</span></div></div>
+            ${thumbsHtml}
+        </div>
+    </div>`;
+}
+
+function toggleHistLayer(num, show){
+    const layer = num === 1 ? hist1Layer : hist2Layer;
+    if(show) map.addLayer(layer); else map.removeLayer(layer);
+}
+
+function setHistOpacity(num, value){
+    const opacity = value / 100;
+    const layer = num === 1 ? hist1Layer : hist2Layer;
+    layer.setOpacity(opacity);
+    document.getElementById('hist' + num + '-val').textContent = value + '%';
+}
+
+function resetMapView(){
+    map.fitBounds(CURRENT_MAP_BOUNDS, {padding: [20, 20]});
+    if(selectedMarkerRef){
+        const el = selectedMarkerRef.getElement();
+        if(el) el.classList.remove('selected-marker');
+        selectedMarkerRef = null;
+    }
+}
+
+initFilters();
+updateMap();
+</script>
+</body>
 </html>
